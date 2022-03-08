@@ -5,9 +5,13 @@ import functools
 import logging
 from collections.abc import Iterable
 
+import cfg4py
 from flask import views, request, Response, jsonify
 
 from thstrader.common import exceptions
+from thstrader.config import Config
+
+cfg: Config = cfg4py.get_instance()
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +23,7 @@ def response(func):
         resp = {"status": 0, "msg": "ok"}
         result = {}
         request_id = request.headers.get("request_id")
-        token = request.headers.get("token")
+        token = request.headers.get("Authorization")
         try:
             # 将request_id 记录进redis
             if not request_id:
@@ -27,12 +31,14 @@ def response(func):
             # 检查传过来的用户名和token是否匹配
             if not token:
                 raise exceptions.MissHeaderToken()
+            if token != cfg.api_token:
+                raise exceptions.ErrorHeaderToken()
             result = await func(request, *args, **kwargs)
         except exceptions.APIException as e:
-            resp.update({"error_code": e.error_code, "msg": e.msg})
+            resp.update({"status": e.error_code, "msg": e.msg})
         except Exception as e:
             logger.exception(e)
-            resp.update({"error_code": 1, "msg": "服务器异常"})
+            resp.update({"status": 1, "msg": "服务器异常"})
 
         if isinstance(result, Response):
             return result

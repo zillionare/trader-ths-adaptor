@@ -11,7 +11,7 @@ import pywinauto.keyboard
 import pywinauto
 import pywinauto.clipboard
 
-from thstrader.log import logger
+from thstrader.config import logger
 from thstrader.utils.captcha import captcha_recognize
 from thstrader.utils.win_gui import SetForegroundWindow, ShowWindow, win32defines
 
