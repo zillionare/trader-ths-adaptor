@@ -14,7 +14,7 @@ from pywinauto import findwindows, timings
 from thstrader.common import grid_strategies, pop_dialog_handler, refresh_strategies
 from thstrader.config import client
 from thstrader.common.grid_strategies import IGridStrategy
-from thstrader.log import logger
+from thstrader.config import logger
 from thstrader.common.refresh_strategies import IRefreshStrategy
 from thstrader.utils.misc import file2dict
 from thstrader.utils.perf import perf_clock

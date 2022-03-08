@@ -4,7 +4,7 @@ import pywinauto
 import pywinauto.clipboard
 
 from thstrader.common import grid_strategies
-from . import clienttrader
+from thstrader.common import clienttrader
 
 
 class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
