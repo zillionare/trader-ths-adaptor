@@ -19,7 +19,7 @@ def response(func):
     """中间件，检查调用的来源是否有权限"""
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):
         resp = {"status": 0, "msg": "ok"}
         result = {}
         request_id = request.headers.get("request_id")
@@ -33,7 +33,7 @@ def response(func):
                 raise exceptions.MissHeaderToken()
             if token != cfg.api_token:
                 raise exceptions.ErrorHeaderToken()
-            result = await func(request, *args, **kwargs)
+            result = func(request_id, *args, **kwargs)
         except exceptions.APIException as e:
             resp.update({"status": e.error_code, "msg": e.msg})
         except Exception as e:
@@ -44,6 +44,8 @@ def response(func):
             return result
         if isinstance(result, Iterable):
             result = {"data": result}
+        if result is None:
+            result = {}
         resp.update(result)
         resp = jsonify(resp)
         return resp

@@ -121,7 +121,6 @@ class ClientTrader(IClientTrader):
     def broker_type(self):
         return "ths"
 
-    @property
     def balance(self):
         self._switch_left_menus(["查询[F4]", "资金股票"])
 
@@ -140,25 +139,21 @@ class ClientTrader(IClientTrader):
             )
         return result
 
-    @property
     def position(self):
         self._switch_left_menus(["查询[F4]", "资金股票"])
 
         return self._get_grid_data(self._config.COMMON_GRID_CONTROL_ID)
 
-    @property
     def today_entrusts(self):
         self._switch_left_menus(["查询[F4]", "当日委托"])
 
         return self._get_grid_data(self._config.COMMON_GRID_CONTROL_ID)
 
-    @property
     def today_trades(self):
         self._switch_left_menus(["查询[F4]", "当日成交"])
 
         return self._get_grid_data(self._config.COMMON_GRID_CONTROL_ID)
 
-    @property
     def cancel_entrusts(self):
         self.refresh()
         self._switch_left_menus(["撤单[F3]"])
@@ -168,7 +163,7 @@ class ClientTrader(IClientTrader):
     @perf_clock
     def cancel_entrust(self, entrust_no):
         self.refresh()
-        for i, entrust in enumerate(self.cancel_entrusts):
+        for i, entrust in enumerate(self.cancel_entrusts()):
             if entrust[self._config.CANCEL_ENTRUST_ENTRUST_FIELD] == entrust_no:
                 self._cancel_entrust_by_double_click(i)
                 return self._handle_pop_dialogs()
@@ -448,8 +443,8 @@ class ClientTrader(IClientTrader):
             .window_text()
         )
 
-    def _set_trade_params(self, security, price, amount):
-        code = security[-6:]
+    def _set_trade_params(self, security: str, price, amount):
+        code = security[:6]
 
         self._type_edit_control_keys(self._config.TRADE_SECURITY_CONTROL_ID, code)
 
@@ -457,9 +452,9 @@ class ClientTrader(IClientTrader):
         self.wait(0.1)
 
         # 设置交易所
-        if security.lower().startswith("sz"):
+        if security.lower().endswith("sz"):
             self._set_stock_exchange_type("深圳Ａ股")
-        if security.lower().startswith("sh"):
+        if security.lower().endswith("sh"):
             self._set_stock_exchange_type("上海Ａ股")
 
         self.wait(0.1)
