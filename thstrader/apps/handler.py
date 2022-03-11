@@ -4,35 +4,11 @@
 import logging
 import time
 from thstrader.common.universal_clienttrader import UniversalClientTrader
-from queue import Queue
-from typing import Callable, List
+from typing import Callable, List, Dict
 from threading import Thread
 import requests
+
 logger = logging.getLogger(__name__)
-
-actions_queue = Queue()  # 全局的动作列表，为了做串行化处理
-
-
-class Action:
-    """一个action动作，应该包含
-    1. 真正的执行函数+参数
-    2. 执行结果的回调方法 （可能并不需要回调）
-    """
-
-    def __init__(self, func: Callable, *args, **kwargs):
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-    def __call__(self):
-        try:
-            ret = self.func(*self.args, **self.kwargs)
-            return ret
-        except Exception as e:
-            logger.exception(e)
-
-    def put_self(self):
-        actions_queue.put(self)
 
 
 class LocalOrderData:
@@ -54,8 +30,8 @@ class LocalOrderData:
         self.entrust_no = entrust_no
 
 
-class TimedQueryEntrust:
-    order_list = []  #type: List[LocalOrderData] # 需要查询的订单列表
+class QueryEntrust:
+    order_list = []  # type: List[LocalOrderData] # 需要查询的订单列表
     user: UniversalClientTrader = None  # 同花顺登录的用户的实例，只有有user 才可以查询和买卖
     """
     [{
@@ -74,45 +50,42 @@ class TimedQueryEntrust:
             "证券代码": "000001",
             "证券名称": "平安银行"
         }]
-  """
+    """
+
+    status_map = {
+        "未成交": 1,
+        "部分成交": 2,
+        "全部成交": 3,
+        "全部撤单": 4,
+    }
+
     @classmethod
-    def analysis_entrust_data(cls, entrust_data):
-        # 解析委托订单数据
-        result = []
+    def entrust_list_to_dict(cls, entrust_data: list) -> Dict:
+        result = {}
         for data in entrust_data:
+            entrust_no = data.get("合同编号")  # type: str
             code = data.get("证券代码")
             broker_cn = data.get("交易市场")  # type: str
-            side_cn = data.get("操作")  # type: str
             price = data.get("委托价格")  # type: float
             volume = data.get("委托数量")  # type: float
             filled = data.get("成交数量")  # type: int
             status_cn = data.get("备注")  # type: str
-            entrust_no = data.get("合同编号")  # type: str
-            # date = data.get("委托日期")  # type: str # 需要处理成时间
+            # date = data.get("委托日期")  # type: str 需要处理成时间
             t = data.get("委托时间")  # type: str
             name = data.get("证券名称")  # type: str
+            average_price = data.get("成交均价")  # type: str
             suffix = ""
             side = 0  # 1-买入 2-卖出
-            status = 0  # 0-未成交 1-部分成交 2-全部成交 3-已撤单
             if broker_cn.startswith("深"):
                 suffix = ".XSHE"
             elif broker_cn.startswith("上"):
                 suffix = ".XSHG"
-            if side_cn == "买入":
-                side = 1
-            elif side_cn == "卖出":
-                side = 2
-            if status_cn == "已成":
-                status = 2
-            elif status_cn == "未成交":
-                status = 0
-            elif status_cn == "部分成交":
-                status = 1
-            elif status_cn == "已撤":
-                status = 3
+            status = cls.status_map.get(status_cn, 0)
+            if status == 0:
+                logger.info(f"status_cn:{status_cn}，未找到枚举项")
 
             security = code + suffix
-            result.append({
+            result[entrust_no] = {
                 "security": security,
                 "entrust_no": entrust_no,
                 "name": name,
@@ -121,10 +94,16 @@ class TimedQueryEntrust:
                 "filled": filled,
                 "side": side,
                 "status": status,
-                "date": t
-            })
-
+                "time": t,
+                "average_price": average_price
+            }
         return result
+
+    @classmethod
+    def analysis_entrust_data(cls, entrust_no: str, entrust_data: list) -> Dict:
+        # 解析委托订单数据，并找到指定的委托单号
+        entrust_dict = cls.entrust_list_to_dict(entrust_data)
+        return entrust_dict.get(entrust_no, {})
 
     @classmethod
     def timed_query_entrust(cls) -> int:
@@ -164,7 +143,6 @@ class TimedQueryEntrust:
                         "volume": entrust["volume"],
                         "filled": entrust["filled"],
                         "side": entrust["side"],
-                        "status": status,
                         "date": entrust["date"]
                     }
                 )

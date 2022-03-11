@@ -195,35 +195,35 @@ class ClientTrader(IClientTrader):
         self.close_pop_dialog()
 
     @perf_clock
-    def repo(self, security, price, amount, **kwargs):
+    def repo(self, security, price, volume, **kwargs):
         self._switch_left_menus(["债券回购", "融资回购（正回购）"])
 
-        return self.trade(security, price, amount)
+        return self.trade(security, price, volume)
 
     @perf_clock
-    def reverse_repo(self, security, price, amount, **kwargs):
+    def reverse_repo(self, security, price, volume, **kwargs):
         self._switch_left_menus(["债券回购", "融劵回购（逆回购）"])
 
-        return self.trade(security, price, amount)
+        return self.trade(security, price, volume)
 
     @perf_clock
-    def buy(self, security, price, amount, **kwargs):
+    def buy(self, security, price, volume, **kwargs):
         self._switch_left_menus(["买入[F1]"])
 
-        return self.trade(security, price, amount)
+        return self.trade(security, price, volume)
 
     @perf_clock
-    def sell(self, security, price, amount, **kwargs):
+    def sell(self, security, price, volume, **kwargs):
         self._switch_left_menus(["卖出[F2]"])
 
-        return self.trade(security, price, amount)
+        return self.trade(security, price, volume)
 
     @perf_clock
-    def market_buy(self, security, amount, ttype=None, limit_price=None, **kwargs):
+    def market_buy(self, security, volume, ttype=None, limit_price=None, **kwargs):
         """
         市价买入
         :param security: 六位证券代码
-        :param amount: 交易数量
+        :param volume: 交易数量
         :param ttype: 市价委托类型，默认客户端默认选择，
                      深市可选 ['对手方最优价格', '本方最优价格', '即时成交剩余撤销', '最优五档即时成交剩余 '全额成交或撤销']
                      沪市可选 ['最优五档成交剩余撤销', '最优五档成交剩余转限价']
@@ -233,14 +233,14 @@ class ClientTrader(IClientTrader):
         """
         self._switch_left_menus(["市价委托", "买入"])
 
-        return self.market_trade(security, amount, ttype, limit_price=limit_price)
+        return self.market_trade(security, volume, ttype, limit_price=limit_price)
 
     @perf_clock
-    def market_sell(self, security, amount, ttype=None, limit_price=None, **kwargs):
+    def market_sell(self, security, volume, ttype=None, limit_price=None, **kwargs):
         """
         市价卖出
         :param security: 六位证券代码
-        :param amount: 交易数量
+        :param volume: 交易数量
         :param ttype: 市价委托类型，默认客户端默认选择，
                      深市可选 ['对手方最优价格', '本方最优价格', '即时成交剩余撤销', '最优五档即时成交剩余 '全额成交或撤销']
                      沪市可选 ['最优五档成交剩余撤销', '最优五档成交剩余转限价']
@@ -249,13 +249,13 @@ class ClientTrader(IClientTrader):
         """
         self._switch_left_menus(["市价委托", "卖出"])
 
-        return self.market_trade(security, amount, ttype, limit_price=limit_price)
+        return self.market_trade(security, volume, ttype, limit_price=limit_price)
 
-    def market_trade(self, security, amount, ttype=None, limit_price=None, **kwargs):
+    def market_trade(self, security, volume, ttype=None, limit_price=None, **kwargs):
         """
         市价交易
         :param security: 六位证券代码
-        :param amount: 交易数量
+        :param volume: 交易数量
         :param ttype: 市价委托类型，默认客户端默认选择，
                      深市可选 ['对手方最优价格', '本方最优价格', '即时成交剩余撤销', '最优五档即时成交剩余 '全额成交或撤销']
                      沪市可选 ['最优五档成交剩余撤销', '最优五档成交剩余转限价']
@@ -274,7 +274,7 @@ class ClientTrader(IClientTrader):
                 except:
                     retry += 1
                     self.wait(0.1)
-        self._set_market_trade_params(security, amount, limit_price=limit_price)
+        self._set_market_trade_params(security, volume, limit_price=limit_price)
         self._submit_trade()
 
         return self._handle_pop_dialogs(
@@ -346,8 +346,8 @@ class ClientTrader(IClientTrader):
     def _click_grid_by_row(self, row):
         x = self._config.COMMON_GRID_LEFT_MARGIN
         y = (
-            self._config.COMMON_GRID_FIRST_ROW_HEIGHT
-            + self._config.COMMON_GRID_ROW_HEIGHT * row
+                self._config.COMMON_GRID_FIRST_ROW_HEIGHT
+                + self._config.COMMON_GRID_ROW_HEIGHT * row
         )
         self._app.top_window().child_window(
             control_id=self._config.COMMON_GRID_CONTROL_ID,
@@ -359,12 +359,12 @@ class ClientTrader(IClientTrader):
         self.wait(0.5)  # wait dialog display
         try:
             return (
-                self._main.wrapper_object() != self._app.top_window().wrapper_object()
+                    self._main.wrapper_object() != self._app.top_window().wrapper_object()
             )
         except (
-            findwindows.ElementNotFoundError,
-            timings.TimeoutError,
-            RuntimeError,
+                findwindows.ElementNotFoundError,
+                timings.TimeoutError,
+                RuntimeError,
         ) as ex:
             logger.exception("check pop dialog timeout")
             return False
@@ -378,9 +378,9 @@ class ClientTrader(IClientTrader):
                     w.close()
                     self.wait(0.2)
         except (
-            findwindows.ElementNotFoundError,
-            timings.TimeoutError,
-            RuntimeError,
+                findwindows.ElementNotFoundError,
+                timings.TimeoutError,
+                RuntimeError,
         ) as ex:
             pass
 
@@ -408,8 +408,8 @@ class ClientTrader(IClientTrader):
             if window.window_text() != self._config.TITLE:
                 window.close()
 
-    def trade(self, security, price, amount):
-        self._set_trade_params(security, price, amount)
+    def trade(self, security, price, volume):
+        self._set_trade_params(security, price, volume)
 
         self._submit_trade()
 
@@ -439,11 +439,11 @@ class ClientTrader(IClientTrader):
     def _get_pop_dialog_title(self):
         return (
             self._app.top_window()
-            .child_window(control_id=self._config.POP_DIALOD_TITLE_CONTROL_ID)
-            .window_text()
+                .child_window(control_id=self._config.POP_DIALOD_TITLE_CONTROL_ID)
+                .window_text()
         )
 
-    def _set_trade_params(self, security: str, price, amount):
+    def _set_trade_params(self, security: str, price, volume):
         code = security[:6]
 
         self._type_edit_control_keys(self._config.TRADE_SECURITY_CONTROL_ID, code)
@@ -464,12 +464,12 @@ class ClientTrader(IClientTrader):
             easyutils.round_price_by_code(price, code),
         )
         self._type_edit_control_keys(
-            self._config.TRADE_AMOUNT_CONTROL_ID, str(int(amount))
+            self._config.TRADE_VOLUME_CONTROL_ID, str(int(volume))
         )
 
-    def _set_market_trade_params(self, security, amount, limit_price=None):
+    def _set_market_trade_params(self, security, volume, limit_price=None):
         self._type_edit_control_keys(
-            self._config.TRADE_AMOUNT_CONTROL_ID, str(int(amount))
+            self._config.TRADE_VOLUME_CONTROL_ID, str(int(volume))
         )
         self.wait(0.1)
         price_control = None
@@ -546,8 +546,8 @@ class ClientTrader(IClientTrader):
     def _cancel_entrust_by_double_click(self, row):
         x = self._config.CANCEL_ENTRUST_GRID_LEFT_MARGIN
         y = (
-            self._config.CANCEL_ENTRUST_GRID_FIRST_ROW_HEIGHT
-            + self._config.CANCEL_ENTRUST_GRID_ROW_HEIGHT * row
+                self._config.CANCEL_ENTRUST_GRID_FIRST_ROW_HEIGHT
+                + self._config.CANCEL_ENTRUST_GRID_ROW_HEIGHT * row
         )
         self._app.top_window().child_window(
             control_id=self._config.COMMON_GRID_CONTROL_ID,
@@ -581,13 +581,13 @@ class BaseLoginClientTrader(ClientTrader):
         pass
 
     def prepare(
-        self,
-        config_path=None,
-        user=None,
-        password=None,
-        exe_path=None,
-        comm_password=None,
-        **kwargs
+            self,
+            config_path=None,
+            user=None,
+            password=None,
+            exe_path=None,
+            comm_password=None,
+            **kwargs
     ):
         """
         登陆客户端
