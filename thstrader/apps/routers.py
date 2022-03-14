@@ -149,11 +149,13 @@ def post_buy(request_id):
 @response
 def post_sell(request_id):
     json_data = request.get_json(force=True)
-
     user = global_store["user"]
-    res = user.sell(**json_data)
-
-    return res
+    resp = user.sell(**json_data)
+    entrust_no = resp.get("entrust_no")
+    today_trades_and_entrusts = user.get_today_trades_and_entrusts()
+    entrust_data = today_trades_and_entrusts.get(entrust_no)
+    resp.update(entrust_data)
+    return resp
 
 
 @app.route("/cancel_entrust", methods=["POST"])
