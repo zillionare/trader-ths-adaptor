@@ -114,14 +114,8 @@ def get_today_trades(request_id):
 def get_today_trades_and_entrusts(request_id):
     """获取今日委托单和成交单"""
     user = global_store["user"]
-    today_trades = user.today_trades()  # 先查成交单是为了防止先查询委托单后，已成交数量对应不上的情况
-    trade_data = user.trader_list_to_dict(today_trades)
-    today_entrusts = user.today_entrusts()
-    entrusts_data = QueryEntrust.entrust_list_to_dict(today_entrusts)
-    # 将数据进行合并
-    for entrusts in entrusts_data:
-        entrusts_data[entrusts_data]["trader_order"] = trade_data.get(entrusts)
-    return entrusts_data
+    today_trades_and_entrusts = user.get_today_trades_and_entrusts()
+    return today_trades_and_entrusts
 
 
 @app.route("/cancel_entrusts", methods=["POST"])
@@ -144,9 +138,8 @@ def post_buy(request_id):
     user = global_store["user"]
     resp = user.buy(**json_data)
     entrust_no = resp.get("entrust_no")
-    entrusts = user.today_entrusts()  # 查询当日委托
-    # 遍历找到刚刚委托的订单
-    entrust_data = QueryEntrust.analysis_entrust_data(entrust_no, entrusts)
+    today_trades_and_entrusts = user.get_today_trades_and_entrusts()
+    entrust_data = today_trades_and_entrusts.get(entrust_no)
     resp.update(entrust_data)
     return resp
 

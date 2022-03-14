@@ -83,6 +83,21 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             suffix = ".XSHG"
         return security + suffix
 
+    def get_today_trades_and_entrusts(self):
+        entrusts_data = self.entrust_list_to_dict(self.today_entrusts())
+        print(entrusts_data)
+        for entrust in entrusts_data:
+            if entrusts_data[entrust].get("filled", 0) > 0:
+                # 说明有成交记录，需要查成交
+                trade_data = self.trader_list_to_dict(self.today_trades())
+                break
+        else:
+            trade_data = {}
+        # 将数据进行合并
+        for entrust in entrusts_data:
+            entrusts_data[entrust]["trader_orders"] = trade_data.get(entrust, [])
+        return entrusts_data
+
     def entrust_list_to_dict(self, entrust_data: list) -> Dict:
         result = {}
         for data in entrust_data:
@@ -142,6 +157,7 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
                 "value": trader.get("成交金额"),
                 "price": trader.get("成交均价"),
                 "order_side": self.side_map.get(trader.get("操作"), 0),
-                "time": trader.get("成交时间")
+                "eid": trader.get("成交编号"),
+                "time": trader.get("成交时间"),
             })
         return result
