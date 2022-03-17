@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import datetime
+import enum
 import logging
 from collections import defaultdict
 from typing import Dict, List
@@ -8,7 +10,28 @@ import pywinauto.clipboard
 
 from thstrader.common import grid_strategies
 from thstrader.common import clienttrader
+
 logger = logging.getLogger(__name__)
+
+
+class OrderStatus(enum.IntEnum):
+    ERROR = -1
+    NO_DEAL = 1  # 未成交
+    PARTIAL_TRANSACTION = 2  # #部分成交
+    ALL_TRANSACTIONS = 3  # 全部成交
+    CANCEL_ALL_ORDERS = 4  # 全部撤单
+
+    @classmethod
+    def get_status(cls, status_cn):
+        status_map = {
+            "未成交": cls.NO_DEAL.value,
+            "部分成交": cls.PARTIAL_TRANSACTION.value,
+            "全部成交": cls.ALL_TRANSACTIONS.value,
+            "全部撤单": cls.CANCEL_ALL_ORDERS.value,
+            "异常": cls.ERROR.value
+        }
+
+        return status_map.get(status_cn, cls.ERROR.value)
 
 
 class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
@@ -20,9 +43,10 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
         "全部撤单": 4,
     }
     side_map = {
-        "买入":1,
-        "卖出":-1,
+        "买入": 1,
+        "卖出": -1,
     }
+
     @property
     def broker_type(self):
         return "universal"
@@ -83,22 +107,14 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             suffix = ".XSHG"
         return security + suffix
 
-    def get_today_trades_and_entrusts(self):
+    def get_today_entrusts(self):
         entrusts_data = self.entrust_list_to_dict(self.today_entrusts())
-        print(entrusts_data)
-        for entrust in entrusts_data:
-            if entrusts_data[entrust].get("filled", 0) > 0:
-                # 说明有成交记录，需要查成交
-                trade_data = self.trader_list_to_dict(self.today_trades())
-                break
-        else:
-            trade_data = {}
-        # 将数据进行合并
-        for entrust in entrusts_data:
-            entrusts_data[entrust]["trader_orders"] = trade_data.get(entrust, [])
+
         return entrusts_data
 
     def entrust_list_to_dict(self, entrust_data: list) -> Dict:
+        today = datetime.datetime.now().date().strftime("%Y-%m-%d")
+
         result = {}
         for data in entrust_data:
             entrust_no = data.get("合同编号")  # type: str
@@ -113,12 +129,10 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             t = data.get("委托时间")  # type: str
             name = data.get("证券名称")  # type: str
             average_price = data.get("成交均价")  # type: str
-            status = self.status_map.get(status_cn, 0)
+            status = OrderStatus.get_status(status_cn)
             if status == 0:
                 logger.info(f"status_cn:{status_cn}，未找到枚举项")
-
             code = self.conversion_security_to_code(security, broker_cn)
-
             result[entrust_no] = {
                 "code": code,
                 "entrust_no": entrust_no,
@@ -128,7 +142,7 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
                 "filled": filled,
                 "order_side": self.side_map.get(side_cn, 0),
                 "status": status,
-                "time": t,
+                "time": f'{today} {t}',
                 "average_price": average_price
             }
         return result
@@ -147,6 +161,8 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
           '证券代码': '162411',
           '证券名称': '华宝油气'}]
         """
+        today = datetime.datetime.now().date().strftime("%Y-%m-%d")
+
         result = defaultdict(list)
         for trader in trader_data:
             entrust_no = trader.get("合同编号")  # 委托合同号
@@ -158,6 +174,50 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
                 "price": trader.get("成交均价"),
                 "order_side": self.side_map.get(trader.get("操作"), 0),
                 "eid": trader.get("成交编号"),
-                "time": trader.get("成交时间"),
+                "time": f'{today} {trader.get("成交时间")}',
             })
+        return result
+
+    @staticmethod
+    def balance_to_dict(balance):
+
+        return {
+            "available": balance.get("可用金额"),
+
+        }
+
+    def position_to_list(self, positions):
+        """
+        {
+            "Unnamed: 14": "",
+            "交易市场": "深圳Ａ股",
+            "冻结数量": 0,
+            "可用余额": 1500,
+            "市价": 14.48,
+            "市值": 21720.0,
+            "当日买入": 0,
+            "当日卖出": 200,
+            "成本价": 14.548,
+            "明细": "",
+            "盈亏": -102.18,
+            "盈亏比例(%)": -0.47,
+            "股票余额": 1500,
+            "证券代码": "000001",
+            "证券名称": "平安银行"
+        },
+        """
+        result = []
+        for position in positions:
+            security = position.get("证券代码")
+            broker_cn = position.get("交易市场")  # type: str
+            result.append(
+                {
+                    "code": self.conversion_security_to_code(security, broker_cn),
+                    "name": "平安银行",
+                    "shares": position.get("股票余额"),  # 总股数
+                    "sellable": position.get("可用余额"),  # 可用股票数
+                    "price": position.get("成本价"),  # 成本均价
+                    "market_value": position.get("市值")  # 持仓市值
+                }
+            )
         return result

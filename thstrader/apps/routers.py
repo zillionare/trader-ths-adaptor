@@ -10,7 +10,6 @@ from flask import request
 from thstrader.common import api
 from thstrader.config import app
 from thstrader.apps import response
-from thstrader.apps.handler import QueryEntrust
 from threading import Lock
 from thstrader.config.schema import Config
 
@@ -43,7 +42,7 @@ def serialization_lock(func):
 
 @app.route("/", methods=["POST"])
 @response
-def index(request_id):
+def index():
     return
 
 
@@ -63,25 +62,28 @@ def prepare():
 
 
 @app.route("/balance", methods=["POST"])
+@serialization_lock
 @response
-def get_balance(request_id):
+def get_balance():
     user = global_store["user"]
-    balance = user.balance()
-    return balance
+    resp = user.balance()
+
+    return user.balance_to_dict(resp)
 
 
 @app.route("/position", methods=["POST"])
+@serialization_lock
 @response
-def get_position(request_id):
+def get_position():
     user = global_store["user"]
     position = user.position()
 
-    return position
+    return user.position_to_list(position)
 
 
 @app.route("/auto_ipo", methods=["POST"])
 @response
-def get_auto_ipo(request_id):
+def get_auto_ipo():
     user = global_store["user"]
     res = user.auto_ipo()
 
@@ -91,7 +93,7 @@ def get_auto_ipo(request_id):
 @app.route("/today_entrusts", methods=["POST"])
 @serialization_lock
 @response
-def get_today_entrusts(request_id):
+def get_today_entrusts():
     user = global_store["user"]
 
     today_entrusts = user.today_entrusts()
@@ -102,7 +104,7 @@ def get_today_entrusts(request_id):
 @app.route("/today_trades", methods=["POST"])
 @serialization_lock
 @response
-def get_today_trades(request_id):
+def get_today_trades():
     user = global_store["user"]
     today_trades = user.today_trades()
     return today_trades
@@ -111,16 +113,16 @@ def get_today_trades(request_id):
 @app.route("/today_trades_and_entrusts", methods=["POST"])
 @serialization_lock
 @response
-def get_today_trades_and_entrusts(request_id):
+def get_today_trades_and_entrusts():
     """获取今日委托单和成交单"""
     user = global_store["user"]
-    today_trades_and_entrusts = user.get_today_trades_and_entrusts()
+    today_trades_and_entrusts = user.get_today_entrusts()
     return today_trades_and_entrusts
 
 
 @app.route("/cancel_entrusts", methods=["POST"])
 @response
-def get_cancel_entrusts(request_id):
+def get_cancel_entrusts():
     user = global_store["user"]
     cancel_entrusts = user.cancel_entrusts()
 
@@ -130,15 +132,15 @@ def get_cancel_entrusts(request_id):
 @app.route("/buy", methods=["POST"])
 @serialization_lock
 @response
-def post_buy(request_id):
+def post_buy():
     """
-    根据买的request_id来绑定子账户
+    根据买的来绑定子账户
     """
     json_data = request.get_json(force=True)
     user = global_store["user"]
     resp = user.buy(**json_data)
     entrust_no = resp.get("entrust_no")
-    today_trades_and_entrusts = user.get_today_trades_and_entrusts()
+    today_trades_and_entrusts = user.get_today_entrusts()
     entrust_data = today_trades_and_entrusts.get(entrust_no)
     resp.update(entrust_data)
     return resp
@@ -147,12 +149,12 @@ def post_buy(request_id):
 @app.route("/sell", methods=["POST"])
 @serialization_lock
 @response
-def post_sell(request_id):
+def post_sell():
     json_data = request.get_json(force=True)
     user = global_store["user"]
     resp = user.sell(**json_data)
     entrust_no = resp.get("entrust_no")
-    today_trades_and_entrusts = user.get_today_trades_and_entrusts()
+    today_trades_and_entrusts = user.get_today_entrusts()
     entrust_data = today_trades_and_entrusts.get(entrust_no)
     resp.update(entrust_data)
     return resp
@@ -160,7 +162,7 @@ def post_sell(request_id):
 
 @app.route("/cancel_entrust", methods=["POST"])
 @response
-def post_cancel_entrust(request_id):
+def post_cancel_entrust():
     json_data = request.get_json(force=True)
 
     user = global_store["user"]
@@ -171,7 +173,7 @@ def post_cancel_entrust(request_id):
 
 @app.route("/exit", methods=["POST"])
 @response
-def get_exit(request_id):
+def get_exit():
     user = global_store["user"]
     user.exit()
 

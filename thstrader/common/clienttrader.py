@@ -514,7 +514,7 @@ class ClientTrader(IClientTrader):
             item.collapse()
 
     @perf_clock
-    def _switch_left_menus(self, path, sleep=0.2):
+    def _switch_left_menus(self, path, sleep=0.4):
         self.close_pop_dialog()
         self._get_left_menus_handle().get_item(path).select()
         self._app.top_window().type_keys("{F5}")

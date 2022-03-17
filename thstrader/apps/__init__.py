@@ -22,18 +22,15 @@ def response(func):
     def wrapper(*args, **kwargs):
         resp = {"status": 0, "msg": "ok"}
         result = {}
-        request_id = request.headers.get("request_id")
         token = request.headers.get("Authorization")
         try:
             # 将request_id 记录进redis
-            if not request_id:
-                raise exceptions.MissHeaderRequestID()
             # 检查传过来的用户名和token是否匹配
             if not token:
                 raise exceptions.MissHeaderToken()
             if token != cfg.api_token:
                 raise exceptions.ErrorHeaderToken()
-            result = func(request_id, *args, **kwargs)
+            result = func(*args, **kwargs)
         except exceptions.APIException as e:
             resp.update({"status": e.error_code, "msg": e.msg})
         except Exception as e:
