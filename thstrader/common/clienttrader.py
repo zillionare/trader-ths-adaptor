@@ -160,14 +160,20 @@ class ClientTrader(IClientTrader):
 
         return self._get_grid_data(self._config.COMMON_GRID_CONTROL_ID)
 
-    @perf_clock
-    def cancel_entrust(self, entrust_no):
+    def cancel_entrust(self, entrust_no_list):
         self.refresh()
-        for i, entrust in enumerate(self.cancel_entrusts()):
-            if entrust[self._config.CANCEL_ENTRUST_ENTRUST_FIELD] == entrust_no:
-                self._cancel_entrust_by_double_click(i)
-                return self._handle_pop_dialogs()
-        return {"message": "委托单状态错误不能撤单, 该委托单可能已经成交或者已撤"}
+        canceled = []
+        entrusts_data_list = self.cancel_entrusts()
+        for entrust in entrusts_data_list[:]:
+            entrust_no = entrust[self._config.CANCEL_ENTRUST_ENTRUST_FIELD]
+            if entrust_no in entrust_no_list:
+                index = entrusts_data_list.index(entrust)
+                self._cancel_entrust_by_double_click(index)
+                self._handle_pop_dialogs()
+                entrusts_data_list.pop(index)
+                time.sleep(1)
+                canceled.append(entrust_no)
+        return canceled
 
     def cancel_all_entrusts(self):
         self.refresh()

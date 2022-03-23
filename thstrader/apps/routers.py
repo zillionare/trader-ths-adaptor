@@ -7,7 +7,7 @@ import logging
 import cfg4py
 from flask import request
 
-from thstrader.common import api
+from thstrader.common import api, exceptions
 from thstrader.config import app
 from thstrader.apps import response
 from threading import Lock
@@ -95,10 +95,7 @@ def get_auto_ipo():
 @response
 def get_today_entrusts():
     user = global_store["user"]
-
-    today_entrusts = user.today_entrusts()
-
-    return user.entrust_list_to_dict(today_entrusts)
+    return user.get_today_entrusts()
 
 
 @app.route("/today_trades", methods=["POST"])
@@ -116,17 +113,7 @@ def get_today_trades():
 def get_today_trades_and_entrusts():
     """获取今日委托单和成交单"""
     user = global_store["user"]
-    today_trades_and_entrusts = user.get_today_entrusts()
-    return today_trades_and_entrusts
-
-
-@app.route("/cancel_entrusts", methods=["POST"])
-@response
-def get_cancel_entrusts():
-    user = global_store["user"]
-    cancel_entrusts = user.cancel_entrusts()
-
-    return cancel_entrusts
+    return user.get_today_entrusts()
 
 
 @app.route("/buy", methods=["POST"])
@@ -160,15 +147,38 @@ def post_sell():
     return resp
 
 
+@app.route("/cancel_entrusts", methods=["POST"])
+@serialization_lock
+@response
+def post_cancel_entrusts():
+    json_data = request.get_json(force=True)
+    entrust_no = json_data.get("entrust_no")
+    user = global_store["user"]
+    resp = user.cancel_entrust(entrust_no)
+    if resp is False:
+        # 说明撤单失败了
+        raise exceptions.APIException("撤销失败")
+    today_trades_and_entrusts = user.get_today_entrusts()
+    result = {}
+    for item in resp:
+        result[item] = today_trades_and_entrusts.get(item)
+    return result
+
+
 @app.route("/cancel_entrust", methods=["POST"])
+@serialization_lock
 @response
 def post_cancel_entrust():
     json_data = request.get_json(force=True)
-
+    entrust_no = json_data.get("entrust_no")
     user = global_store["user"]
-    res = user.cancel_entrust(**json_data)
-
-    return res
+    resp = user.cancel_entrust([entrust_no])
+    if not resp:
+        # 说明撤单失败了
+        raise exceptions.APIException("撤销失败")
+    today_trades_and_entrusts = user.get_today_entrusts()
+    entrust_data = today_trades_and_entrusts.get(entrust_no)
+    return entrust_data
 
 
 @app.route("/exit", methods=["POST"])
