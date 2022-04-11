@@ -24,15 +24,7 @@ if not os.path.exists(LOG_PATH):
 
 
 def get_config_dir():
-    # server_role = os.environ.get(cfg4py.envar)
-
-    # if server_role == "DEV":
-    _dir = path.dirname(__file__)
-    # elif server_role == "TEST":
-    #     _dir = path.expanduser("~/.zillionare/omega/config")
-    # else:
-    #     _dir = path.expanduser("~/zillionare/omega/config")
-    #
+    _dir = os.path.join(BASE_DIR, "config")
     sys.path.insert(0, _dir)
     return _dir
 
