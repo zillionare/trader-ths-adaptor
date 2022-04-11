@@ -6,6 +6,7 @@ block_cipher = None
 
 a = Analysis(['runserver_by_gui.py'],
              binaries=[],
+             datas=[("gui/config.py", "cfg4py/config.py")],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],

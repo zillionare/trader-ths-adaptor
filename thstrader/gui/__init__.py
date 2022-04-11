@@ -60,7 +60,7 @@ class Application(tk.Frame):
         self.createWidgets()
         self.master.title("EasyTrader Server")
         self.master.geometry("800x700+500+200")
-        threading.Thread(target=self.cron, daemon=True).start()
+        # threading.Thread(target=self.cron, daemon=True).start()
 
     def cron(self):
 
