@@ -117,7 +117,7 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
         return entrusts_data
 
     @staticmethod
-    def get_trade_fees(filled, price, order_side):
+    def get_trade_fees(filled, price, order_side, code):
         if not hasattr(cfg, "commission"):
             cfg.commission = 3
             logger.error("commission not set, default 3")
@@ -129,10 +129,11 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             cfg.min_limit = 5
             logger.error("min_limit not set, default 5")
         total_value = filled * price
-        commission = total_value * cfg.commission * 0.0001
-        if commission < cfg.min_limit:
-            commission = cfg.min_limit
-        trade_fees = commission + total_value * cfg.transfer_fee * 0.0001
+        trade_fees = total_value * cfg.commission * 0.0001
+        if trade_fees < cfg.min_limit:
+            trade_fees = cfg.min_limit
+        if code.startswith("6"):
+            trade_fees += total_value * cfg.transfer_fee * 0.0001
         if order_side == -1:
             # 只有卖出有印花税
             if not hasattr(cfg, "stamp_duty"):
@@ -161,7 +162,8 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             if status == 0:
                 logger.info(f"status_cn:{status_cn}，未找到枚举项")
             code = self.conversion_security_to_code(security, broker_cn)
-            trade_fees = self.get_trade_fees(filled, price, side_cn)
+            order_side = self.side_map.get(side_cn, 0)
+            trade_fees = self.get_trade_fees(filled, price, order_side, code)
             result[entrust_no] = {
                 "code": code,
                 "entrust_no": entrust_no,
@@ -169,7 +171,7 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
                 "price": price,
                 "volume": volume,
                 "filled": filled,
-                "order_side": self.side_map.get(side_cn, 0),
+                "order_side": order_side,
                 "status": status,
                 "time": f'{today} {t}',
                 "average_price": average_price,
