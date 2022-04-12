@@ -26,9 +26,9 @@ def serialization_lock(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         """执行每个请求之前，加锁"""
-        gui_lock.acquire()
-        prepare()  # 检查登录操作
         try:
+            gui_lock.acquire()
+            prepare()  # 检查登录操作
             resp = func(*args, **kwargs)
         except Exception as e:
             raise e
