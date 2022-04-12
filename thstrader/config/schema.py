@@ -35,3 +35,11 @@ class Config(object):
     enable_type_keys_for_editor: Optional[bool] = None
 
     api_token: Optional[str] = None
+
+    commission: Optional[int] = None
+
+    transfer_fee: Optional[float] = None
+
+    stamp_duty: Optional[int] = None
+
+    miscellaneous: Optional[int] = None

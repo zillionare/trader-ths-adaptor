@@ -5,11 +5,15 @@ import logging
 from collections import defaultdict
 from typing import Dict, List
 
+import cfg4py
 import pywinauto
 import pywinauto.clipboard
 
 from thstrader.common import grid_strategies
 from thstrader.common import clienttrader
+from thstrader.config import Config
+
+cfg: Config = cfg4py.get_instance()
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +116,33 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
 
         return entrusts_data
 
-    def entrust_list_to_dict(self, entrust_data: list) -> Dict:
-        today = datetime.datetime.now().date().strftime("%Y-%m-%d")
+    @staticmethod
+    def get_trade_fees(filled, price, order_side):
+        if not hasattr(cfg, "commission"):
+            cfg.commission = 3
+            logger.error("commission not set, default 3")
+        if not hasattr(cfg, "transfer_fee"):
+            cfg.transfer_fee = 10
+            logger.error("transfer_fee not set, default 10")
+            logger.error("stamp_duty not set, default 10")
+        if not hasattr(cfg, "min_limit"):
+            cfg.min_limit = 5
+            logger.error("min_limit not set, default 5")
+        total_value = filled * price
+        commission = total_value * cfg.commission * 0.0001
+        if commission < cfg.min_limit:
+            commission = cfg.min_limit
+        trade_fees = commission + total_value * cfg.transfer_fee * 0.0001
+        if order_side == -1:
+            # 只有卖出有印花税
+            if not hasattr(cfg, "stamp_duty"):
+                cfg.stamp_duty = 10
+            trade_fees += total_value * cfg.stamp_duty * 0.0001
+        return trade_fees
 
+    def entrust_list_to_dict(self, entrust_data: list) -> Dict:
+        """将委托合同号转换成字典，并且计算手续费"""
+        today = datetime.datetime.now().date().strftime("%Y-%m-%d")
         result = {}
         for data in entrust_data:
             entrust_no = data.get("合同编号")  # type: str
@@ -133,6 +161,7 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             if status == 0:
                 logger.info(f"status_cn:{status_cn}，未找到枚举项")
             code = self.conversion_security_to_code(security, broker_cn)
+            trade_fees = self.get_trade_fees(filled, price, side_cn)
             result[entrust_no] = {
                 "code": code,
                 "entrust_no": entrust_no,
@@ -143,7 +172,8 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
                 "order_side": self.side_map.get(side_cn, 0),
                 "status": status,
                 "time": f'{today} {t}',
-                "average_price": average_price
+                "average_price": average_price,
+                "trade_fees": trade_fees,
             }
         return result
 

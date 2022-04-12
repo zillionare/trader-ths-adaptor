@@ -5,4 +5,7 @@ exe_path: "C:\\ths\\xiadan.exe"
 broker: "universal_client"
 enable_type_keys_for_editor: true
 api_token: "ec31c154fc0cbf4ba39eb48689ebcbfaacf8067f"
-
+commission: 3
+transfer_fee: 10
+stamp_duty: 10
+min_limit: 5
