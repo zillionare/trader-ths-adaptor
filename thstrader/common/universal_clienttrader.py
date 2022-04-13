@@ -163,7 +163,7 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
                 logger.info(f"status_cn:{status_cn}，未找到枚举项")
             code = self.conversion_security_to_code(security, broker_cn)
             order_side = self.side_map.get(side_cn, 0)
-            trade_fees = self.get_trade_fees(filled, price, order_side, code)
+            trade_fees = self.get_trade_fees(filled, average_price, order_side, code)
             result[entrust_no] = {
                 "code": code,
                 "entrust_no": entrust_no,
