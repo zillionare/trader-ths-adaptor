@@ -129,16 +129,17 @@ class UniversalClientTrader(clienttrader.BaseLoginClientTrader):
             cfg.min_limit = 5
             logger.error("min_limit not set, default 5")
         total_value = filled * price
-        trade_fees = total_value * cfg.commission * 0.0001
+        trade_fees = round(total_value * cfg.commission * 0.0001, 2)
         if trade_fees < cfg.min_limit:
             trade_fees = cfg.min_limit
         if code.startswith("6"):
-            trade_fees += total_value * cfg.transfer_fee * 0.0001
+            trade_fees += round(total_value * cfg.transfer_fee * 0.0001, 2)
         if order_side == -1:
             # 只有卖出有印花税
             if not hasattr(cfg, "stamp_duty"):
                 cfg.stamp_duty = 10
-            trade_fees += total_value * cfg.stamp_duty * 0.0001
+            trade_fees += round(total_value * cfg.stamp_duty * 0.0001, 2)
+
         return trade_fees
 
     def entrust_list_to_dict(self, entrust_data: list) -> Dict:
