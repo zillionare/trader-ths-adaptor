@@ -71,7 +71,7 @@ def get_balance():
     return user.balance_to_dict(resp)
 
 
-@app.route("/position", methods=["POST"])
+@app.route("/positions", methods=["POST"])
 @serialization_lock
 @response
 def get_position():

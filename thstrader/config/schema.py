@@ -38,8 +38,8 @@ class Config(object):
 
     commission: Optional[int] = None
 
-    transfer_fee: Optional[float] = None
+    transfer_fee: Optional[int] = None
 
     stamp_duty: Optional[int] = None
 
-    miscellaneous: Optional[int] = None
+    min_limit: Optional[int] = None
